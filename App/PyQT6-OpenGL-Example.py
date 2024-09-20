@@ -1,3 +1,4 @@
+import os
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtOpenGLWidgets import QOpenGLWidget
@@ -12,46 +13,24 @@ class OpenGLWidget(QOpenGLWidget):
         self.shaderProgram = None
         self.vao = None
 
-    def load_shader_source(self, filename):
-        print(f"Attempting to load shader: {filename}")
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
-        print(f"Full path: {filepath}")
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"Shader file not found: {filepath}")
-        try:
-            with open(filepath, 'r') as file:
-                source = file.read()
-            print(f"Successfully loaded shader: {filename}")
-            return source
-        except Exception as e:
-            print(f"Error loading shader {filename}: {e}")
-            raise
-
     def initializeGL(self):
-        print("Initializing OpenGL")
-        print("OpenGL Version:", glGetString(GL_VERSION).decode())
-        """初始化 OpenGL 的设置和着色器"""
+        # 初始化 OpenGL
         glClearColor(0.0, 0.0, 0.0, 1.0)  # 设置背景颜色为黑色
         glEnable(GL_DEPTH_TEST)  # 启用深度测试
 
+        def load_shader(shader_path):
+            abs_path = os.path.abspath(shader_path)
+            with open(abs_path, 'r', encoding='utf-8') as file:
+                shader_code = file.read()
+            return shader_code
+
+        vertex_shader_source = load_shader(r"C:\Users\abc\PycharmProjects\PyQt6-OpenGL\custom_shaders\vert.glsl")
+        fragment_shader_source = load_shader(r"C:\Users\abc\PycharmProjects\PyQt6-OpenGL\custom_shaders\frag.glsl")
+        print(vertex_shader_source)
+
         # 编译着色器
-        print("Loading vertex shader")
-        vertex_shader_source = self.load_shader_source("vert.glsl")
-        if vertex_shader_source is None:
-            raise Exception("Failed to load vertex shader")
-
-        print("Loading fragment shader")
-        fragment_shader_source = self.load_shader_source("frag.glsl")
-        if fragment_shader_source is None:
-            raise Exception("Failed to load fragment shader")
-
-        print("Creating shader program")
         self.shaderProgram = self.createShaderProgram(vertex_shader_source, fragment_shader_source)
-        if self.shaderProgram is None:
-            raise Exception("Failed to create shader program")
 
-        print("Setting up vertex data")
         # 定义三角形的顶点和颜色
         vertices = np.array([
             # 位置           # 颜色
@@ -79,9 +58,8 @@ class OpenGLWidget(QOpenGLWidget):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
-
     def createShaderProgram(self, vertex_source, fragment_source):
-        """创建、编译并链接着色器程序"""
+        # 创建和编译着色器程序
         vertexShader = glCreateShader(GL_VERTEX_SHADER)
         glShaderSource(vertexShader, vertex_source)
         glCompileShader(vertexShader)
@@ -110,18 +88,16 @@ class OpenGLWidget(QOpenGLWidget):
         return shaderProgram
 
     def resizeGL(self, w, h):
-        """调整视口大小"""
+        # 定义一下视口
         glViewport(0, 0, w, h)
 
     def paintGL(self):
-        """渲染 OpenGL 内容"""
+        # 开始渲染 OpenGL 内容
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # 使用自定义 Shader
         glUseProgram(self.shaderProgram)
         glBindVertexArray(self.vao)
 
-        # 绘制三角形
         glDrawArrays(GL_TRIANGLES, 0, 3)
 
         glBindVertexArray(0)
@@ -131,19 +107,17 @@ class OpenGLWidget(QOpenGLWidget):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        print("Creating OpenGLWidget")
 
         self.setWindowTitle("PyQt6 OpenGL Shader Example")
         self.setGeometry(100, 100, 800, 600)
 
-        # 创建 OpenGL 小部件并将其设置为主窗口的中央小部件
+        # OpenGL Widget
         self.opengl_widget = OpenGLWidget()
-        print("Setting OpenGLWidget as central widget")
         self.setCentralWidget(self.opengl_widget)
 
-        # 添加一个计时器来触发更新
+        # 添加计时器来触发更新
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.opengl_widget.update)
+        # self.timer.timeout.connect(self.opengl_widget.update)
         self.timer.start(16)  # 大约每秒 60 帧
 
 
